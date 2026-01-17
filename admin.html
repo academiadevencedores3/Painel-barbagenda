@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel Admin - BarbAgende</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Day.js para manipulação de datas -->
+    <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dayjs@1/locale/pt-br.js"></script>
+    <!-- Ícones (Ionicons) -->
+    <script type="module" src="https://cdn.jsdelivr.net/npm/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+    <script nomodule src="https://cdn.jsdelivr.net/npm/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom scrollbar para melhor estética */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1f2937; /* bg-gray-800 */
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #4f46e5; /* bg-indigo-600 */
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #6366f1; /* bg-indigo-500 */
+        }
+        .calendar-day.has-appointments::after {
+            content: '';
+            position: absolute;
+            bottom: 6px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background-color: #a5b4fc; /* indigo-300 */
+        }
+        /* Estilos para os Modais */
+        .modal.hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white antialiased flex">
+
+    <!-- Sidebar / Menu Lateral -->
+    <aside class="w-64 bg-gray-800 p-6 flex-shrink-0 flex flex-col justify-between border-r border-gray-700 min-h-screen">
+        <div>
+            <header class="text-center mb-10">
+                <h1 class="text-3xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-500">BarbAgende</h1>
+                <p class="text-sm text-gray-400">Painel Admin</p>
+            </header>
+    
+            <nav class="flex flex-col space-y-2">
+                <a href="#dashboard" class="nav-link flex items-center py-2 px-4 rounded-lg transition-colors bg-gray-700 text-white">
+                    <ion-icon name="grid-outline" class="mr-3 text-lg"></ion-icon>
+                    Dashboard
+                </a>
+                <a href="#agenda" class="nav-link flex items-center py-2 px-4 rounded-lg transition-colors hover:bg-gray-700 text-gray-400">
+                    <ion-icon name="calendar-outline" class="mr-3 text-lg"></ion-icon>
+                    Agenda
+                </a>
+                <a href="#servicos" class="nav-link flex items-center py-2 px-4 rounded-lg transition-colors hover:bg-gray-700 text-gray-400">
+                    <ion-icon name="cut-outline" class="mr-3 text-lg"></ion-icon>
+                    Serviços
+                </a>
+                <a href="#equipe" class="nav-link flex items-center py-2 px-4 rounded-lg transition-colors hover:bg-gray-700 text-gray-400">
+                    <ion-icon name="people-outline" class="mr-3 text-lg"></ion-icon>
+                    Equipe
+                </a>
+                <a href="#configuracoes" class="nav-link flex items-center py-2 px-4 rounded-lg transition-colors hover:bg-gray-700 text-gray-400">
+                   <ion-icon name="settings-outline" class="mr-3 text-lg"></ion-icon>
+                    Configurações
+                </a>
+            </nav>
+        </div>
+
+        <div class="border-t border-gray-700 pt-4">
+             <div class="flex items-center">
+                <img src="https://placehold.co/40x40/4f46e5/ffffff?text=CS" alt="Avatar do usuário" class="w-10 h-10 rounded-full mr-3">
+                <div>
+                    <p class="font-semibold">Carlos Silva</p>
+                    <a href="#" class="text-sm text-indigo-400 hover:underline">Sair</a>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Conteúdo Principal -->
+    <main id="main-content" class="flex-1 p-8 overflow-y-auto">
+        <!-- O conteúdo das seções será injetado aqui pelo JavaScript -->
+    </main>
+
+    <!-- Modal para Novo Agendamento -->
+    <div id="appointment-modal" class="modal hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50">
+        <div class="bg-gray-800 p-8 rounded-2xl border border-gray-700 w-full max-w-lg">
+            <h3 class="text-2xl font-bold mb-6">Novo Agendamento</h3>
+            <form id="appointment-form" class="space-y-4">
+                <div><label for="clientName" class="block text-sm font-medium text-gray-300 mb-1">Nome do Cliente</label><input type="text" id="clientName" required class="w-full bg-gray-700 border-gray-600 rounded-lg p-2 focus:ring-indigo-500 focus:border-indigo-500"></div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div><label for="service" class="block text-sm font-medium text-gray-300 mb-1">Serviço</label><select id="service" required class="w-full bg-gray-700 border-gray-600 rounded-lg p-2 focus:ring-indigo-500 focus:border-indigo-500"></select></div>
+                    <div><label for="staff" class="block text-sm font-medium text-gray-300 mb-1">Profissional</label><select id="staff" required class="w-full bg-gray-700 border-gray-600 rounded-lg p-2 focus:ring-indigo-500 focus:border-indigo-500"></select></div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div><label for="date" class="block text-sm font-medium text-gray-300 mb-1">Data</label><input type="date" id="date" required class="w-full bg-gray-700 border-gray-600 rounded-lg p-2 focus:ring-indigo-500 focus:border-indigo-500"></div>
+                    <div><label for="time" class="block text-sm font-medium text-gray-300 mb-1">Horário</label><input type="time" id="time" required class="w-full bg-gray-700 border-gray-600 rounded-lg p-2 focus:ring-indigo-500 focus:border-indigo-500"></div>
+                </div>
+                <div class="flex justify-end space-x-4 pt-4">
+                    <button type="button" class="modal-cancel-btn bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-6 rounded-lg transition-colors">Cancelar</button>
+                    <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 px-6 rounded-lg transition-colors">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Modal para Novo Serviço -->
+    <div id="service-modal" class="modal hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50">
+        <div class="bg-gray-800 p-8 rounded-2xl border border-gray-700 w-full max-w-lg">
+            <h3 class="text-2xl font-bold mb-6">Novo Serviço</h3>
+            <form id="service-form" class="space-y-4">
+                <div><label for="serviceName" class="block text-sm font-medium text-gray-300 mb-1">Nome do Serviço</label><input type="text" id="serviceName" required class="w-full bg-gray-700 border-gray-600 rounded-lg p-2 focus:ring-indigo-500 focus:border-indigo-500"></div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div><label for="duration" class="block text-sm font-medium text-gray-300 mb-1">Duração (minutos)</label><input type="number" id="duration" required class="w-full bg-gray-700 border-gray-600 rounded-lg p-2 focus:ring-indigo-500 focus:border-indigo-500"></div>
+                    <div><label for="price" class="block text-sm font-medium text-gray-300 mb-1">Preço (R$)</label><input type="number" step="0.01" id="price" required class="w-full bg-gray-700 border-gray-600 rounded-lg p-2 focus:ring-indigo-500 focus:border-indigo-500"></div>
+                </div>
+                <div class="flex items-center justify-between"><p class="text-sm font-medium text-gray-300">Serviço ativo</p><label class="relative inline-flex items-center cursor-pointer"><input type="checkbox" id="serviceIsActive" class="sr-only peer" checked><div class="w-11 h-6 bg-gray-600 rounded-full peer peer-focus:ring-4 peer-focus:ring-indigo-800 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div></label></div>
+                <div class="flex justify-end space-x-4 pt-4">
+                    <button type="button" class="modal-cancel-btn bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-6 rounded-lg transition-colors">Cancelar</button>
+                    <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 px-6 rounded-lg transition-colors">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Modal para Novo Membro da Equipe -->
+    <div id="staff-modal" class="modal hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50">
+        <div class="bg-gray-800 p-8 rounded-2xl border border-gray-700 w-full max-w-lg">
+            <h3 class="text-2xl font-bold mb-6">Novo Membro da Equipe</h3>
+            <form id="staff-form" class="space-y-4">
+                <div><label for="staffName" class="block text-sm font-medium text-gray-300 mb-1">Nome Completo</label><input type="text" id="staffName" required class="w-full bg-gray-700 border-gray-600 rounded-lg p-2 focus:ring-indigo-500 focus:border-indigo-500"></div>
+                <div><label for="staffEmail" class="block text-sm font-medium text-gray-300 mb-1">E-mail</label><input type="email" id="staffEmail" required class="w-full bg-gray-700 border-gray-600 rounded-lg p-2 focus:ring-indigo-500 focus:border-indigo-500"></div>
+                <div><label for="workingHours" class="block text-sm font-medium text-gray-300 mb-1">Horário de Trabalho (Ex: Seg-Sex 09:00-18:00)</label><input type="text" id="workingHours" required class="w-full bg-gray-700 border-gray-600 rounded-lg p-2 focus:ring-indigo-500 focus:border-indigo-500"></div>
+                <div class="flex items-center justify-between"><p class="text-sm font-medium text-gray-300">Membro ativo</p><label class="relative inline-flex items-center cursor-pointer"><input type="checkbox" id="staffIsActive" class="sr-only peer" checked><div class="w-11 h-6 bg-gray-600 rounded-full peer peer-focus:ring-4 peer-focus:ring-indigo-800 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div></label></div>
+                <div class="flex justify-end space-x-4 pt-4">
+                    <button type="button" class="modal-cancel-btn bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-6 rounded-lg transition-colors">Cancelar</button>
+                    <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 px-6 rounded-lg transition-colors">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <script>
+        dayjs.locale('pt-br');
+
+        // --- MOCK DATA (Simulando dados do banco Supabase) ---
+        let mockData = {
+            appointments: [
+                { id: 1, date: '2025-09-19', client_name: "Fernando Lima", service: "Corte de Cabelo", staff: "João", start_time: "09:00", status: "PENDENTE" },
+                { id: 2, date: '2025-09-19', client_name: "Ricardo Alves", service: "Corte + Barba", staff: "Carlos", start_time: "10:00", status: "CONFIRMADO" },
+                { id: 3, date: '2025-09-19', client_name: "Ana Julia", service: "Corte de Cabelo", staff: "João", start_time: "11:00", status: "CONFIRMADO" },
+                { id: 4, date: '2025-09-22', client_name: "Marcos Andrade", service: "Barba", staff: "Carlos", start_time: "14:00", status: "CANCELADO" },
+                { id: 5, date: '2025-09-22', client_name: "Bruno Costa", service: "Corte de Cabelo", staff: "João", start_time: "15:00", status: "CONFIRMADO" },
+                { id: 6, date: '2025-10-05', client_name: "Lucas Martins", service: "Selagem", staff: "Carlos", start_time: "16:00", status: "CONFIRMADO" },
+            ],
+            services: [
+                { id: 1, name: "Corte de Cabelo", duration: 45, price: 50.00, is_active: true },
+                { id: 2, name: "Barba", duration: 30, price: 35.00, is_active: true },
+                { id: 3, name: "Corte + Barba", duration: 75, price: 80.00, is_active: true },
+                { id: 4, name: "Selagem", duration: 90, price: 120.00, is_active: false },
+            ],
+            staff: [
+                { id: 1, name: "João", email: "joao@barbearia.com", working_hours: "Seg-Sex 09:00-18:00", is_active: true },
+                { id: 2, name: "Carlos", email: "carlos@barbearia.com", working_hours: "Ter-Sab 10:00-19:00", is_active: true },
+            ]
+        };
+        
+        // --- APP STATE & CONSTANTS ---
+        const TODAY = dayjs('2025-09-19');
+        const agendaState = {
+            currentDate: TODAY.clone(),
+            selectedDate: TODAY.clone()
+        };
+
+        const mainContent = document.getElementById('main-content');
+        
+        // --- GENERIC RENDER & HELPER FUNCTIONS ---
+        const statusBadge = (status) => {
+            switch (status) {
+                case 'CONFIRMADO': return `<span class="px-2 py-1 text-xs font-semibold text-green-200 bg-green-800 rounded-full">Confirmado</span>`;
+                case 'PENDENTE': return `<span class="px-2 py-1 text-xs font-semibold text-yellow-200 bg-yellow-800 rounded-full">Pendente</span>`;
+                case 'CANCELADO': return `<span class="px-2 py-1 text-xs font-semibold text-red-200 bg-red-800 rounded-full">Cancelado</span>`;
+                default: return '';
+            }
+        };
+        
+        // --- DASHBOARD FUNCTIONS ---
+        const renderDashboard = () => {
+            mainContent.innerHTML = `
+                <h2 class="text-3xl font-bold mb-6">Dashboard</h2>
+                <p class="text-gray-400 mb-8">Olá, Carlos! Aqui está um resumo dos seus agendamentos para hoje.</p>
+                <div class="bg-gray-800 p-6 rounded-2xl border border-gray-700">
+                    <h3 class="text-xl font-semibold mb-4">Próximos Agendamentos (Hoje)</h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left">
+                            <thead class="border-b border-gray-600 text-sm text-gray-400">
+                                <tr>
+                                    <th class="py-3 px-4">Cliente</th>
+                                    <th class="py-3 px-4">Serviço</th>
+                                    <th class="py-3 px-4">Profissional</th>
+                                    <th class="py-3 px-4">Horário</th>
+                                    <th class="py-3 px-4">Status</th>
+                                    <th class="py-3 px-4 text-right">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${mockData.appointments.filter(app => dayjs(app.date).isSame(TODAY, 'day')).map(app => `
+                                    <tr class="border-b border-gray-700 hover:bg-gray-700/50">
+                                        <td class="py-4 px-4">${app.client_name}</td><td>${app.service}</td><td>${app.staff}</td><td>${app.start_time}</td><td>${statusBadge(app.status)}</td>
+                                        <td class="py-4 px-4 text-right">
+                                            ${app.status === 'PENDENTE' ? `<button class="text-green-400 hover:text-green-300 mr-3" title="Confirmar"><ion-icon name="checkmark-circle-outline"></ion-icon></button>` : ''}
+                                            <button class="text-red-400 hover:text-red-300" title="Cancelar"><ion-icon name="trash-outline"></ion-icon></button>
+                                        </td>
+                                    </tr>`).join('') || '<tr><td colspan="6" class="text-center py-4 text-gray-400">Nenhum agendamento para hoje.</td></tr>'}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>`;
+        };
+
+        // --- AGENDA FUNCTIONS ---
+        const renderAgenda = () => {
+            mainContent.innerHTML = `
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-3xl font-bold">Agenda</h2>
+                    <button id="new-appointment-btn" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 px-4 rounded-lg flex items-center transition-colors">
+                        <ion-icon name="add-outline" class="mr-2"></ion-icon>Novo Agendamento
+                    </button>
+                </div>
+                <div class="lg:flex lg:space-x-8">
+                    <div class="lg:w-1/2 bg-gray-800 p-6 rounded-2xl border border-gray-700 h-min">
+                        <div class="flex items-center justify-between mb-4">
+                            <button id="prev-month" class="p-2 rounded-full hover:bg-gray-700"><ion-icon name="chevron-back-outline"></ion-icon></button>
+                            <h3 id="month-year" class="text-xl font-semibold capitalize"></h3>
+                            <button id="next-month" class="p-2 rounded-full hover:bg-gray-700"><ion-icon name="chevron-forward-outline"></ion-icon></button>
+                        </div>
+                        <div id="calendar-grid" class="grid grid-cols-7 gap-2 text-center"></div>
+                        <div class="text-center mt-4"><button id="go-to-today" class="text-indigo-400 hover:text-indigo-300 text-sm font-semibold">Hoje</button></div>
+                    </div>
+                    <div id="appointments-for-day" class="lg:w-1/2 mt-8 lg:mt-0"></div>
+                </div>`;
+            renderCalendar();
+            renderAppointmentsForSelectedDay();
+            setupAgendaEventListeners();
+        };
+
+        const renderCalendar = () => {
+            const calendarGrid = document.getElementById('calendar-grid');
+            const monthYearEl = document.getElementById('month-year');
+            if (!calendarGrid || !monthYearEl) return;
+            monthYearEl.textContent = agendaState.currentDate.format('MMMM [de] YYYY');
+            const startOfMonth = agendaState.currentDate.startOf('month');
+            const endOfMonth = agendaState.currentDate.endOf('month');
+            const startDate = startOfMonth.startOf('week');
+            const daysOfWeek = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+            let calendarHTML = daysOfWeek.map(d => `<div class="font-semibold text-xs text-gray-400">${d}</div>`).join('');
+            let day = startDate;
+            while (day.isBefore(endOfMonth.endOf('week'))) {
+                const isCurrentMonth = day.isSame(agendaState.currentDate, 'month');
+                const isToday = day.isSame(TODAY, 'day');
+                const isSelected = day.isSame(agendaState.selectedDate, 'day');
+                const appointmentsOnDay = mockData.appointments.filter(app => day.isSame(app.date, 'day'));
+                let classes = "calendar-day relative w-10 h-10 flex items-center justify-center rounded-full cursor-pointer transition-colors ";
+                if (!isCurrentMonth) classes += "text-gray-600"; else classes += "hover:bg-gray-700 ";
+                if(isToday && !isSelected) classes += "border-2 border-indigo-500 ";
+                if(isSelected) classes += "bg-indigo-600 text-white font-bold ";
+                if(appointmentsOnDay.length > 0 && isCurrentMonth) classes += "has-appointments ";
+                calendarHTML += `<div class="${classes}" data-date="${day.format('YYYY-MM-DD')}">${day.format('D')}</div>`;
+                day = day.add(1, 'day');
+            }
+            calendarGrid.innerHTML = calendarHTML;
+        };
+        
+        const renderAppointmentsForSelectedDay = () => {
+            const container = document.getElementById('appointments-for-day');
+            if (!container) return;
+            const appointments = mockData.appointments.filter(app => agendaState.selectedDate.isSame(app.date, 'day')).sort((a,b) => a.start_time.localeCompare(b.start_time));
+            let appointmentsHTML = `<h3 class="text-xl font-semibold mb-4">Agendamentos para ${agendaState.selectedDate.format('dddd, DD/MM')}</h3>`;
+            if (appointments.length > 0) {
+                appointmentsHTML += `<div class="space-y-4">${appointments.map(app => `
+                    <div class="bg-gray-800 p-4 rounded-lg border-l-4 ${app.status === 'CONFIRMADO' ? 'border-green-500' : app.status === 'PENDENTE' ? 'border-yellow-500' : 'border-red-500'}">
+                        <div class="flex justify-between items-start">
+                            <div><p class="font-bold">${app.start_time} - ${app.client_name}</p><p class="text-sm text-gray-400">${app.service} com ${app.staff}</p></div>
+                            ${statusBadge(app.status)}
+                        </div>
+                        <div class="flex justify-end space-x-2 mt-2">
+                            ${app.status === 'PENDENTE' ? `<button title="Confirmar" class="text-green-400 hover:text-green-300 text-xl"><ion-icon name="checkmark-circle-outline"></ion-icon></button>` : ''}
+                            <button title="Editar" class="text-indigo-400 hover:text-indigo-300 text-xl"><ion-icon name="create-outline"></ion-icon></button>
+                            <button title="Cancelar" class="text-red-400 hover:text-red-300 text-xl"><ion-icon name="trash-outline"></ion-icon></button>
+                        </div>
+                    </div>`).join('')}</div>`;
+            } else {
+                appointmentsHTML += `<div class="bg-gray-800 p-6 rounded-2xl border border-gray-700 text-center"><ion-icon name="sad-outline" class="text-4xl text-gray-500 mb-2"></ion-icon><p class="text-gray-400">Nenhum agendamento para este dia.</p></div>`;
+            }
+            container.innerHTML = appointmentsHTML;
+        };
+        
+        // --- SERVICES FUNCTIONS ---
+        const renderServicos = () => {
+            mainContent.innerHTML = `
+                 <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-3xl font-bold">Gerenciar Serviços</h2>
+                    <button id="new-service-btn" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 px-4 rounded-lg flex items-center">
+                        <ion-icon name="add-outline" class="mr-2"></ion-icon>Novo Serviço
+                    </button>
+                </div>
+                 <div class="bg-gray-800 rounded-2xl border border-gray-700 overflow-hidden">
+                    <table class="w-full text-left">
+                        <thead class="border-b border-gray-600 text-sm text-gray-400"><tr><th class="py-3 px-4">Nome</th><th class="py-3 px-4">Duração</th><th class="py-3 px-4">Preço</th><th class="py-3 px-4">Status</th><th class="py-3 px-4 text-right">Ações</th></tr></thead>
+                        <tbody>${mockData.services.map(s => `
+                            <tr class="border-b border-gray-700 hover:bg-gray-700/50">
+                                <td class="py-4 px-4 font-semibold">${s.name}</td><td>${s.duration} min</td><td>R$${s.price.toFixed(2).replace('.', ',')}</td>
+                                <td><span class="px-2 py-1 text-xs font-semibold rounded-full ${s.is_active ? 'text-green-200 bg-green-800' : 'text-gray-300 bg-gray-600'}">${s.is_active ? 'Ativo' : 'Inativo'}</span></td>
+                                <td class="py-4 px-4 text-right">
+                                    <button class="text-indigo-400 hover:text-indigo-300 mr-3" title="Editar"><ion-icon name="create-outline"></ion-icon></button>
+                                    <button class="text-red-400 hover:text-red-300" title="Excluir"><ion-icon name="trash-outline"></ion-icon></button>
+                                </td>
+                            </tr>`).join('')}
+                        </tbody>
+                    </table>
+                 </div>`;
+            document.getElementById('new-service-btn')?.addEventListener('click', openServiceModal);
+        }
+
+        // --- TEAM FUNCTIONS ---
+        const renderEquipe = () => {
+            mainContent.innerHTML = `
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-3xl font-bold">Gerenciar Equipe</h2>
+                    <button id="new-staff-btn" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 px-4 rounded-lg flex items-center">
+                        <ion-icon name="person-add-outline" class="mr-2"></ion-icon>Novo Membro
+                    </button>
+                </div>
+                <div id="staff-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    ${mockData.staff.map(s => `
+                        <div class="bg-gray-800 p-6 rounded-2xl border border-gray-700 flex flex-col justify-between">
+                            <div><h4 class="text-xl font-bold">${s.name}</h4><p class="text-indigo-400 text-sm">${s.email}</p><p class="text-gray-400 mt-2 text-sm">Horário: ${s.working_hours}</p></div>
+                            <div class="flex justify-between items-center mt-4 pt-4 border-t border-gray-700">
+                                <span class="px-2 py-1 text-xs font-semibold rounded-full ${s.is_active ? 'text-green-200 bg-green-800' : 'text-gray-300 bg-gray-600'}">${s.is_active ? 'Ativo' : 'Inativo'}</span>
+                                <div><button class="text-indigo-400 hover:text-indigo-300 mr-2" title="Editar"><ion-icon name="create-outline"></ion-icon></button><button class="text-red-400 hover:text-red-300" title="Remover"><ion-icon name="trash-outline"></ion-icon></button></div>
+                            </div>
+                        </div>`).join('')}
+                </div>`;
+            document.getElementById('new-staff-btn')?.addEventListener('click', openStaffModal);
+        }
+        
+        // --- SETTINGS FUNCTIONS ---
+        const renderConfiguracoes = () => { 
+             mainContent.innerHTML = `
+                <h2 class="text-3xl font-bold mb-6">Configurações</h2>
+                <div class="space-y-8 max-w-3xl">
+                    <!-- Configurações do Estabelecimento -->
+                    <div class="bg-gray-800 p-6 rounded-2xl border border-gray-700">
+                         <h3 class="text-xl font-semibold mb-4">Dados do Estabelecimento</h3>
+                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="text-sm text-gray-400">Nome da Barbearia</label>
+                                <input type="text" value="Barbearia Navalha de Ouro" class="w-full bg-gray-700 border-gray-600 rounded-lg p-2 mt-1 focus:ring-indigo-500 focus:border-indigo-500">
+                            </div>
+                             <div>
+                                <label class="text-sm text-gray-400">Endereço</label>
+                                <input type="text" value="Rua das Palmeiras, 123 - Centro" class="w-full bg-gray-700 border-gray-600 rounded-lg p-2 mt-1 focus:ring-indigo-500 focus:border-indigo-500">
+                            </div>
+                         </div>
+                    </div>
+                    <!-- Configurações de Agendamento -->
+                    <div class="bg-gray-800 p-6 rounded-2xl border border-gray-700">
+                         <h3 class="text-xl font-semibold mb-4">Regras de Agendamento</h3>
+                         <div class="flex items-center justify-between">
+                            <p>Confirmar agendamentos automaticamente</p>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                              <input type="checkbox" value="" class="sr-only peer" checked>
+                              <div class="w-11 h-6 bg-gray-600 rounded-full peer peer-focus:ring-4 peer-focus:ring-indigo-800 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                            </label>
+                         </div>
+                    </div>
+                     <!-- Configurações do WhatsApp -->
+                    <div class="bg-gray-800 p-6 rounded-2xl border border-gray-700">
+                         <h3 class="text-xl font-semibold mb-4">Integração WhatsApp</h3>
+                         <p class="text-gray-400 mb-4 text-sm">Configure o template de mensagem para confirmação.</p>
+                         <textarea class="w-full bg-gray-700 border-gray-600 rounded-lg p-2 mt-1 focus:ring-indigo-500 focus:border-indigo-500" rows="4">Olá, {cliente}! Seu agendamento na {barbearia} para {servico} no dia {data} às {hora} está pré-confirmado. Por favor, clique no botão abaixo para confirmar.</textarea>
+                    </div>
+                    <div class="flex justify-end">
+                        <button class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 px-6 rounded-lg transition-colors">Salvar Alterações</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        // --- MODAL FUNCTIONS ---
+        const openModal = (modalId) => {
+            const modal = document.getElementById(modalId);
+            modal.querySelector('form').reset();
+            modal.classList.remove('hidden');
+        };
+        const closeModal = (modalId) => document.getElementById(modalId).classList.add('hidden');
+        
+        const openAppointmentModal = () => {
+            document.getElementById('service').innerHTML = mockData.services.filter(s => s.is_active).map(s => `<option value="${s.name}">${s.name}</option>`).join('');
+            document.getElementById('staff').innerHTML = mockData.staff.filter(s => s.is_active).map(s => `<option value="${s.name}">${s.name}</option>`).join('');
+            document.getElementById('date').value = agendaState.selectedDate.format('YYYY-MM-DD');
+            openModal('appointment-modal');
+        };
+        const openServiceModal = () => openModal('service-modal');
+        const openStaffModal = () => openModal('staff-modal');
+
+        const handleSaveAppointment = (e) => { 
+            e.preventDefault(); 
+            const form = e.target;
+            mockData.appointments.push({
+                id: mockData.appointments.length + 1,
+                date: form.date.value,
+                client_name: form.clientName.value,
+                service: form.service.value,
+                staff: form.staff.value,
+                start_time: form.time.value,
+                status: 'CONFIRMADO'
+            });
+            closeModal('appointment-modal');
+            if(agendaState.selectedDate.isSame(form.date.value, 'day')) {
+                renderAppointmentsForSelectedDay();
+                renderCalendar();
+            }
+        };
+        const handleSaveService = (e) => {
+            e.preventDefault();
+            const form = e.target;
+            mockData.services.push({
+                id: mockData.services.length + 1,
+                name: form.serviceName.value,
+                duration: parseInt(form.duration.value),
+                price: parseFloat(form.price.value),
+                is_active: form.serviceIsActive.checked
+            });
+            closeModal('service-modal');
+            renderServicos();
+        };
+        const handleSaveStaff = (e) => {
+            e.preventDefault();
+            const form = e.target;
+            mockData.staff.push({
+                id: mockData.staff.length + 1,
+                name: form.staffName.value,
+                email: form.staffEmail.value,
+                working_hours: form.workingHours.value,
+                is_active: form.staffIsActive.checked
+            });
+            closeModal('staff-modal');
+            renderEquipe();
+        };
+        
+        // --- GLOBAL EVENT LISTENERS ---
+        const setupEventListeners = () => {
+            document.getElementById('appointment-form')?.addEventListener('submit', handleSaveAppointment);
+            document.getElementById('service-form')?.addEventListener('submit', handleSaveService);
+            document.getElementById('staff-form')?.addEventListener('submit', handleSaveStaff);
+            document.querySelectorAll('.modal-cancel-btn').forEach(btn => btn.addEventListener('click', () => {
+                btn.closest('.modal').classList.add('hidden');
+            }));
+        }
+        
+        const setupAgendaEventListeners = () => {
+            mainContent.addEventListener('click', (e) => {
+                if(e.target.closest('#new-appointment-btn')) openAppointmentModal();
+                if(e.target.closest('#prev-month')) { agendaState.currentDate = agendaState.currentDate.subtract(1, 'month'); renderCalendar(); }
+                if(e.target.closest('#next-month')) { agendaState.currentDate = agendaState.currentDate.add(1, 'month'); renderCalendar(); }
+                if(e.target.closest('#go-to-today')) { agendaState.currentDate = TODAY.clone(); agendaState.selectedDate = TODAY.clone(); renderCalendar(); renderAppointmentsForSelectedDay(); }
+                
+                const dayEl = e.target.closest('.calendar-day');
+                if (dayEl) {
+                    agendaState.selectedDate = dayjs(dayEl.dataset.date);
+                    renderCalendar();
+                    renderAppointmentsForSelectedDay();
+                }
+            });
+        };
+
+        // --- ROUTING & INITIALIZATION ---
+        const navLinks = document.querySelectorAll('.nav-link');
+        const routes = { '#dashboard': renderDashboard, '#agenda': renderAgenda, '#servicos': renderServicos, '#equipe': renderEquipe, '#configuracoes': renderConfiguracoes };
+        const navigate = () => {
+            const hash = window.location.hash || '#dashboard';
+            (routes[hash] || renderDashboard)();
+            navLinks.forEach(link => {
+                const isActive = link.getAttribute('href') === hash;
+                link.classList.toggle('bg-gray-700', isActive);
+                link.classList.toggle('text-white', isActive);
+                link.classList.toggle('hover:bg-gray-700', !isActive);
+                link.classList.toggle('text-gray-400', !isActive);
+            });
+        };
+        
+        window.addEventListener('hashchange', navigate);
+        setupEventListeners();
+        navigate();
+    </script>
+</body>
+</html>
+
